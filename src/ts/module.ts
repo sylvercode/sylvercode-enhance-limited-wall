@@ -3,14 +3,14 @@
 import "../styles/module.scss";
 import DogBrowser from "./apps/dogBrowser";
 import { moduleId, getGame } from "./constants";
-import { MyModule } from "./types";
+import { TodoMyModule } from "./types";
 
-let module: MyModule;
+let module: TodoMyModule;
 
 Hooks.once("init", () => {
   console.log(`Initializing ${moduleId}`);
 
-  module = getGame().modules.get(moduleId) as MyModule;
+  module = getGame().modules.get(moduleId) as TodoMyModule;
   module.dogBrowser = new DogBrowser();
 });
 
@@ -23,7 +23,7 @@ Hooks.on("renderActorDirectory", (_: ActorDirectory, html: HTMLElement) => {
   button.type = "button";
   button.textContent = "🐶";
   button.addEventListener("click", () => {
-    module.dogBrowser.render(true);
+    module.dogBrowser.render();
   });
 
   actionButtons.appendChild(button);

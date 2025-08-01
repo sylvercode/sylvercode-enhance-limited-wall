@@ -1,7 +1,7 @@
 {
-  "id": "sylvercode-enhance-limited-wall",
-  "title": "Sylvercode Enhance Limited Wall",
-  "description": "Enhance limited wall vision of Foundry VTT.",
+  "id": "todo-module-id",
+  "title": "todo-module-title",
+  "description": "todo-module-description",
   "version": "0.0.1",
   "packs": [],
   "system": [],
@@ -13,8 +13,8 @@
   },
   "authors": [
     {
-      "name": "Sylvercode",
-      "email": "sylver.dev@outlook.com",
+      "name": "todo-module-author-name",
+      "email": "todo-module-author-email",
       "flags": {}
     }
   ],
