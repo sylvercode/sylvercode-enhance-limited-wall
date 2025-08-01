@@ -133,10 +133,14 @@ foreach ($OpStep in $OperationSteps) {
 
         if ($PSCmdlet.ShouldProcess("Replacing content of $FilePath with:`n" + ($ModifiedLines -join "`n"), $FilePath, "Update content")) {
             Set-Content -Path $FilePath -Value $NewContent
-            Write-Information "You can now delete this script (Setup-Repo)" -InformationAction Continue
+            
         }
     }
     else {
         Write-Error "File not found: $FilePath"
     }
+}
+
+if (-not $WhatIfPreference) {
+    Write-Information "You can now delete this script (Setup-Repo)" -InformationAction Continue
 }
