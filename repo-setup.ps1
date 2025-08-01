@@ -37,84 +37,87 @@ param (
     $AuthorEmail,
 
     [Parameter(
-        HelpMessage = "The class name of the module in the sourtce code. When not specified, it will be a PascalCase version of the ID."
+        HelpMessage = "The class name of the module in the sourtce code. When not specified, it will be a PascalCase version of the ID suffixed with `"Module`"."
     )]
     [Alias("c")]
     [ValidatePattern("^[A-Z][a-zA-Z0-9]*$")]
     [string]
-    $ClassName = $(AsPascalCase -KebabCaseString $Id)
+    $ClassName
 )
+$ErrorActionPreference = "Stop"
 
-function AsPascalCase {
-    param (
-        [Parameter(Mandatory)]
-        [string]
-        $KebabCaseString
-    )
-    return ($KebabCaseString -split '-') | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1) } -join ''
+function AsPascalCase($KebabCaseString) {
+    $Parts = ($KebabCaseString -split '-') | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1) }
+    return $Parts -join ''
 }
 
-$KebabReplacement = [PSCustomObject] { key = "todo-module-id"; value = $Id }
-$UpperCaseKebabReplacement = [PSCustomObject] { key = "TODO-MODULE-ID"; value = $Id.ToUpper() }
-$ClassNameReplacement = [PSCustomObject] { key = "TodoMyModule"; value = $ClassName }
+if ([string]::IsNullOrWhiteSpace($ClassName)) {
+    $ClassName = (AsPascalCase $Id) + "Module"
+    Write-Information "Class name not specified, using default: $ClassName" -InformationAction Continue
+}
 
-$Operations = @(
-    [PSCustomObject] {
-        file = "src/languages/en.json"
-        repalcements = @(
+$KebabReplacement = [PSCustomObject]@{ key = "todo-module-id"; value = $Id }
+$UpperCaseKebabReplacement = [PSCustomObject]@{ key = "TODO-MODULE-ID"; value = $Id.ToUpper() }
+$ClassNameReplacement = [PSCustomObject]@{ key = "TodoMyModule"; value = $ClassName }
+
+$OperationSteps = @(
+    [PSCustomObject]@{
+        FilePath           = "src/languages/en.json"
+        RepalcementActions = @(
             $UpperCaseKebabReplacement
         )
     },
-    [PSCustomObject] {
-        file = "src/templates/dogs.hbs"
-        repalcements = @(
+    [PSCustomObject]@{
+        FilePath           = "src/templates/dogs.hbs"
+        RepalcementActions = @(
             $UpperCaseKebabReplacement 
         )
     },
-    [PSCustomObject] {
-        file = "src/ts/apps/dogBrowser.ts"
-        repalcements = @(
+    [PSCustomObject]@{
+        FilePath           = "src/ts/apps/dogBrowser.ts"
+        RepalcementActions = @(
             $UpperCaseKebabReplacement
         )
     },
-    [PSCustomObject] {
-        file = "src/ts/module.ts"
-        repalcements = @(
+    [PSCustomObject]@{
+        FilePath           = "src/ts/module.ts"
+        RepalcementActions = @(
             $ClassNameReplacement
         )
     },
-    [PSCustomObject] {
-        file = "src/ts/types.ts"
-        repalcements = @(
+    [PSCustomObject]@{
+        FilePath           = "src/ts/types.ts"
+        RepalcementActions = @(
             $ClassNameReplacement
         )
     },
-    [PSCustomObject] {
-        file = "module.json"
-        repalcements = @(
+    [PSCustomObject]@{
+        FilePath           = "src/module.json"
+        RepalcementActions = @(
             $KebabReplacement,
-            [PSCustomObject] { key = "todo-module-title"; value = $Title },
-            [PSCustomObject] { key = "todo-module-description"; value = $Description },
-            [PSCustomObject] { key = "todo-module-author-name"; value = $AuthorName },
-            [PSCustomObject] { key = "todo-module-author-email"; value = $AuthorEmail }
+            [PSCustomObject]@{ key = "todo-module-title"; value = $Title },
+            [PSCustomObject]@{ key = "todo-module-description"; value = $Description },
+            [PSCustomObject]@{ key = "todo-module-author-name"; value = $AuthorName },
+            [PSCustomObject]@{ key = "todo-module-author-email"; value = $AuthorEmail }
         )
     }
-    [PSCustomObject] {
-        file = "package.json"
-        repalcements = @(
+    [PSCustomObject]@{
+        FilePath           = "package.json"
+        RepalcementActions = @(
             $KebabReplacement,
-            [PSCustomObject] { key = "todo-module-description"; value = $Description }
+            [PSCustomObject]@{ key = "todo-module-description"; value = $Description }
         )
     }
 )
 
-foreach ($Operation in $Operations) {
-    $FilePath = Join-Path -Path $PSScriptRoot -ChildPath $Operation.file
+foreach ($OpStep in $OperationSteps) {
+    Write-Debug "Processing file: $($OpStep.FilePath) in directory: $PSScriptRoot"
+    $FilePath = Join-Path -Path $PSScriptRoot -ChildPath $OpStep.FilePath
     if (Test-Path -Path $FilePath) {
         $OriginalContent = Get-Content -Path $FilePath -Raw
         $NewContent = $OriginalContent
-        foreach ($Replacement in $Operation.repalcements) {
-            $NewContent = $NewContent -replace $Replacement.key, $Replacement.value
+        foreach ($Action in $OpStep.RepalcementActions) {
+            $NewContent = $NewContent -replace $Action.key, $Action.value
         }
         
         $ModifiedLines = @()
@@ -122,11 +125,13 @@ foreach ($Operation in $Operations) {
             $OriginalLines = $OriginalContent -split "`n"
             $NewLines = $NewContent -split "`n"
             for ($i = 0; $i -lt $OriginalLines.Count; $i++) {
-                $ModifiedLines += "Line $($i + 1):\n  Original: $($OriginalLines[$i])\n  New: $($NewLines[$i])"
+                if ($OriginalLines[$i] -ne $NewLines[$i]) {
+                    $ModifiedLines += "Line $($i + 1):`n  Original: $($OriginalLines[$i])`n  New     : $($NewLines[$i])"
+                }
             }
         }
 
-        if ($PSCmdlet.ShouldProcess("Replacing content of $FilePath with:\n" + $ModifiedLines -join "\n", $FilePath, "Update content")) {
+        if ($PSCmdlet.ShouldProcess("Replacing content of $FilePath with:`n" + ($ModifiedLines -join "`n"), $FilePath, "Update content")) {
             Set-Content -Path $FilePath -Value $NewContent
         }
     }
