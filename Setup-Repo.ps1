@@ -53,7 +53,7 @@ function AsPascalCase($KebabCaseString) {
 
 if ([string]::IsNullOrWhiteSpace($ClassName)) {
     $ClassName = (AsPascalCase $Id) + "Module"
-    Write-Information "Class name not specified, using default: $ClassName" -InformationAction Continue
+    Write-Information "Class name not specified, using default: $ClassName"
 }
 
 $KebabReplacement = [PSCustomObject]@{ key = "todo-module-id"; value = $Id }
@@ -133,6 +133,7 @@ foreach ($OpStep in $OperationSteps) {
 
         if ($PSCmdlet.ShouldProcess("Replacing content of $FilePath with:`n" + ($ModifiedLines -join "`n"), $FilePath, "Update content")) {
             Set-Content -Path $FilePath -Value $NewContent
+            Write-Information "You can now delete this script (Setup-Repo)" -InformationAction Continue
         }
     }
     else {
