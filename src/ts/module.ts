@@ -23,7 +23,7 @@ Hooks.on("renderActorDirectory", (_: ActorDirectory, html: HTMLElement) => {
   button.type = "button";
   button.textContent = "🐶";
   button.addEventListener("click", () => {
-    module.dogBrowser.render();
+    module.dogBrowser.render({ force: true });
   });
 
   actionButtons.appendChild(button);
